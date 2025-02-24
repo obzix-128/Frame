@@ -1,0 +1,273 @@
+.model tiny
+.data
+    ramka db '123456789', 0c9h, 0cdh, 0bbh, 0bah, 20h, 0bah, 0c8h, 0cdh, 0bch
+    string db 'Hello RT!', 0
+
+.code
+org 100h
+
+Start:
+    cld
+
+    xor cx, cx
+    xor dx, dx
+
+    call readArguments
+
+    push ax
+    call alignToCenter
+    pop ax
+
+    call drawFrame
+
+    lea si, [string]    ; в ds:si положил адрес строки с надписью
+    xor cx, cx
+    mov cx, 9           ; в cx положил длину строки (перед этим очистил)
+    xor dx, dx
+    mov dx, 1           ; в dx положил высоту строки (перед этим очистил)
+    mov ah, 00000010b   ; в ah положил цвет
+
+    push ax
+    call alignToCenter
+    pop ax
+
+    call drawTitle
+
+    mov ah, 4ch
+    int 21h
+
+Error:
+    mov al, 1
+    mov ah, 4ch
+    int 21h
+
+;-----------------------------------------------------------
+; Считывает аргументы заданные в командной строке
+; Entry: None
+; Exit : ds:si - адрес начала строки с элементами рамки
+;           сl - ширина рамки
+;           dl - высота рамки
+;           ah - цвет
+; Destr: ds, di, cx, dx, ax
+;-----------------------------------------------------------
+
+readArguments   proc
+    mov si, 81h
+    lodsb
+    cmp al, 0dh
+    je Error
+
+    call readNumber
+    mov cl, bl      ; Положил в cl ширину рамки
+
+    call readNumber
+    mov dl, bl      ; Положил в dl высоту рамки
+
+    call readNumber
+    mov ch, bl      ; Положил в ch цвет рамки
+
+    call readNumber ; Определил номер стиля рамки
+    mov al, 9
+    mul bl
+    lea si, [ramka] ; в ds:si положил адрес строки с символами рамки
+    add si, ax      ; Передвинул указатель на нужный стиль рамки
+
+    mov ah, ch ; Переместил цвет рамки из ch в ah
+    xor ch, ch ; Очистил ch
+
+    ret
+    endp
+
+;-----------------------------------------------------------
+; Считывает строку из памяти и преобразует её в число
+; Entry: ds:si - адрес начала строки
+; Exit :    bl - считанное число
+; Destr: si, bl, al
+;-----------------------------------------------------------
+
+readNumber  proc
+    lodsb
+    call numberConversion
+    mov bl, al
+
+    lodsb
+    call checkForSpace
+    jb EndRead
+
+    call numberConversion
+    shl bl, 4
+    add bl, al
+    lodsb
+
+    EndRead:
+        ret
+    endp
+
+;-----------------------------------------------------------
+; Проверяет является ли значение al ASCII-кодом пробела
+; Entry: al - ASCII-код символа
+; Exit : cf - 1 если да и 0 если нет
+; Destr:
+;-----------------------------------------------------------
+
+checkForSpace  proc
+    cmp al, ' '
+    je ThisIsSpace
+    cmp al, 0dh
+    je ThisIsSpace
+
+    clc
+    ret
+
+    ThisIsSpace:
+        stc
+        ret
+    endp
+
+;-----------------------------------------------------------
+; Преобразует ASCII-код символа из al в число
+; Entry: al - ASCII-код символа
+; Exit : al - число
+; Destr:
+;-----------------------------------------------------------
+
+numberConversion  proc
+    cmp al, '0'
+    jb Error
+
+    cmp al, '9'
+    jb DecimalNumber
+
+    cmp al, 'A'
+    jb Error
+
+    cmp al, 'F'
+    jb HexadecimalNumber
+
+    DecimalNumber:
+        sub al, '0'
+        ret
+
+    HexadecimalNumber:
+        sub al, 'A'
+        add al, 10
+        ret
+    endp
+
+;-----------------------------------------------------------
+; Выводит на экран строку заданной длинны, заданного цвета
+; с заданным смещением
+; Entry: ds:si - адрес в памяти строки
+;           ah - цвет надписи
+;           di - смещение
+;           cx - длина надписи
+; Exit : None
+; Destr: si, di, cx
+;-----------------------------------------------------------
+
+drawTitle   proc
+    WriteByCharacter:
+        lodsb
+        stosw
+        loop WriteByCharacter
+
+    ret
+    endp
+
+;-----------------------------------------------------------
+; Высчитывает отступ для расположения рамки определённого
+; размера по центру экрана (80 * 25)
+; Entry: cx - ширина рамки
+;        dx - высота рамки
+; Exit : di - смещение
+; Destr: ax, bl
+;-----------------------------------------------------------
+
+alignToCenter   proc
+    xor di, di
+
+    xor ax, ax
+    mov ax, 25  ; Кладём в ax высоту экрана в строках
+    sub ax, dx  ; Получаем кол-во пустых строк
+    shr ax, 1   ; Получаем половину пустых строк (их и пропустим)
+    mov bl, 80
+    mul bl      ; Умножаем на ширину экрана
+    shl ax, 1   ; Умножаем ещё на два, так как на каждый символ приходится два байта в памяти
+
+    add di, ax
+
+    xor ax, ax
+    mov ax, 80  ; Кладём в ах ширину экрана
+    sub ax, cx  ; Находим кол-во пустых столбцов
+    shr ax, 1   ; Получаем половину пустых столбцов
+    shl ax, 1   ; Умножаем ещё на два, так как на каждый символ приходится два байта в памяти
+
+    add di, ax
+
+    ret
+    endp
+
+;-----------------------------------------------------------
+; Рисует рамку из заданных символов, заданного размера и
+; цвета с заданным отступом.
+; Entry: ds:si - адрес в памяти строки с рамкой
+;           ah - цвет рамки
+;           di - смещение
+;           cx - ширина рамки
+;           dx - высота рамки
+; Exit : None
+; Destr: al, bx, di, si, es
+;-----------------------------------------------------------
+
+drawFrame   proc
+    call drawLine   ; Рисую первую линию рамки
+
+    DrawMiddle:
+        add di, 80 * 2  ; Делаю отступ
+        call drawLine   ; Рисую линию
+        sub si, 3       ; Возвращаю указатель на 4 символ рамки
+
+        dec dx
+        cmp dx, 0
+        jne DrawMiddle
+
+    add di, 80 * 2  ; Отступаю до начала следующей линии
+    add si, 3       ; Ставлю указатель на 7 символ рамки
+    call drawLine   ; Рисую последнюю линию
+
+    ret
+    endp
+
+;-----------------------------------------------------------
+; Рисует строку из символов (первый, последний и
+; промежуточные), с заданной длинной, цветом и отступом
+; Entry: ds:si - адрес в памяти строки с рамкой
+;           ah - цвет рамки
+;           di - смещение
+;           cx - ширина рамки
+; Exit : None
+; Destr: al, bx, si, es
+;-----------------------------------------------------------
+
+
+drawLine    proc
+    push cx
+    push di
+    mov bx, 0b800h
+    mov es, bx
+
+    lodsb   ; Загрузил в al первый символ рамки
+    stosw   ; В видеопамять положил значение из ax
+
+    lodsb   ; Загрузил в al второй символ рамки
+    rep stosw   ; В видеопамять cx символов из ax
+
+    lodsb   ; Загрузил в al последний символ рамки
+    stosw   ; В видеопамять положил значение из ax
+
+    pop di
+    pop cx
+    ret
+    endp
+
+end Start
