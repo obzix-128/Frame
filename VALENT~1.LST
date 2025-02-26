@@ -1,4 +1,4 @@
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 1
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 1
 valent~1.asm
 
 
@@ -8,299 +8,358 @@ valent~1.asm
       3	0000  31 32 33 34 35 36	37+	 ramka db '123456789', 0c9h, 0cdh, 0bbh, 0bah, 20h, 0bah, 0c8h,	0cdh, 0bch
       4	      38 39 C9 CD BB BA	20+
       5	      BA C8 CD BC
-      6	0012  48 65 6C 6C 6F 20	52+	 string	db 'Hello RT!',	0
-      7	      54 21 00
-      8
-      9	001C			     .code
-     10				     org 100h
-     11
-     12	0100			     Start:
-     13	0100  FC			 cld
-     14
-     15	0101  33 C9			 xor cx, cx
-     16	0103  33 D2			 xor dx, dx
+      6
+      7	0012			     .code
+      8				     org 100h
+      9
+     10	0100			     Start:
+     11	0100  FC			 cld
+     12
+     13	0101  33 C9			 xor cx, cx
+     14	0103  33 D2			 xor dx, dx
+     15
+     16	0105  E8 001A			 call readArguments
      17
-     18	0105  E8 0029			 call readArguments
-     19
-     20	0108  50			 push ax
-     21	0109  E8 0091			 call alignToCenter
-     22	010C  58			 pop ax
-     23
-     24	010D  E8 00AE			 call drawFrame
+     18	0108  53			 push bx
+     19	0109  50			 push ax
+     20	010A  E8 00AB			 call alignToCenter
+     21	010D  58			 pop ax
+     22
+     23	010E  E8 00C8			 call drawFrame
+     24	0111  5E			 pop si
      25
-     26	0110  BE 0012r			 lea si, [string]    ; в ds:si положил адрес строки с надписью
-     27	0113  33 C9			 xor cx, cx
-     28	0115  B9 0009			 mov cx, 9	     ; в cx положил длину строки (перед	этим очистил)
-     29	0118  33 D2			 xor dx, dx
-     30	011A  BA 0001			 mov dx, 1	     ; в dx положил высоту строки (перед этим очистил)
-     31	011D  B4 02			 mov ah, 00000010b   ; в ah положил цвет
+     26	0112  E8 0081			 call alignTitleToCenter
+     27
+     28	0115  E8 009B			 call drawTitle
+     29
+     30	0118  B4 4C			 mov ah, 4ch
+     31	011A  CD 21			 int 21h
      32
-     33	011F  50			 push ax
-     34	0120  E8 007A			 call alignToCenter
-     35	0123  58			 pop ax
-     36
-     37	0124  E8 0071			 call drawTitle
-     38
-     39	0127  B4 4C			 mov ah, 4ch
-     40	0129  CD 21			 int 21h
-     41
-     42	012B			     Error:
-     43	012B  B0 01			 mov al, 1
-     44	012D  B4 4C			 mov ah, 4ch
-     45	012F  CD 21			 int 21h
-     46
+     33	011C			     Error:
+     34	011C  B0 01			 mov al, 1
+     35	011E  B4 4C			 mov ah, 4ch
+     36	0120  CD 21			 int 21h
+     37
+     38				     ;-----------------------------------------------------------
+     39				     ; Считывает аргументы заданные в командной	строке
+     40				     ; Entry: None
+     41				     ; Exit : ds:si - адрес начала строки с элементами рамки
+     42				     ;		 bx - смещение в сегменте данных до надписи
+     43				     ;		 сl - ширина рамки
+     44				     ;		 dl - высота рамки
+     45				     ;		 ah - цвет
+     46				     ; Destr: ds, si, cx, dx, ax
      47				     ;-----------------------------------------------------------
-     48				     ; Считывает аргументы заданные в командной	строке
-     49				     ; Entry: None
-     50				     ; Exit : ds:si - адрес начала строки с элементами рамки
-     51				     ;		 сl - ширина рамки
-     52				     ;		 dl - высота рамки
-     53				     ;		 ah - цвет
-     54				     ; Destr: ds, di, cx, dx, ax
-     55				     ;-----------------------------------------------------------
-     56
-     57	0131			     readArguments   proc
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 2
+     48
+     49	0122			     readArguments   proc
+     50	0122  BE 0081			 mov si, 81h
+     51	0125  AC			 lodsb
+     52	0126  3C 0D			 cmp al, 0dh
+     53	0128  74 F2			 je Error	 ; Если	аргументы не заданы, программа возвращает ошибку
+     54
+     55	012A  E8 002A			 call readNumber
+     56	012D  8A CB			 mov cl, bl	 ; Положил в cl	ширину рамки
+     57
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 2
 valent~1.asm
 
 
 
-     58	0131  BE 0081			 mov si, 81h
-     59	0134  AC			 lodsb
-     60	0135  3C 0D			 cmp al, 0dh
-     61	0137  74 F2			 je Error
-     62
-     63	0139  E8 001D			 call readNumber
-     64	013C  8A CB			 mov cl, bl	 ; Положил в cl	ширину рамки
-     65
-     66	013E  E8 0018			 call readNumber
-     67	0141  8A D3			 mov dl, bl	 ; Положил в dl	высоту рамки
-     68
-     69	0143  E8 0013			 call readNumber
-     70	0146  8A EB			 mov ch, bl	 ; Положил в ch	цвет рамки
+     58	012F  E8 0025			 call readNumber
+     59	0132  8A D3			 mov dl, bl	 ; Положил в dl	высоту рамки
+     60
+     61	0134  E8 0020			 call readNumber
+     62	0137  8A EB			 mov ch, bl	 ; Положил в ch	цвет рамки
+     63
+     64	0139  E8 001B			 call readNumber ; Определил номер стиля рамки
+     65	013C  B0 09			 mov al, 9
+     66	013E  F6 E3			 mul bl		 ; Вычислил смещение в массиве стилей рамки до заданного
+     67
+     68	0140  50			 push ax
+     69	0141  E8 000B			 call readTitle	 ; Запомниаю смещение до надписи
+     70	0144  58			 pop ax
      71
-     72	0148  E8 000E			 call readNumber ; Определил номер стиля рамки
-     73	014B  B0 09			 mov al, 9
-     74	014D  F6 E3			 mul bl
-     75	014F  BE 0000r			 lea si, [ramka] ; в ds:si положил адрес строки	с символами рамки
-     76	0152  03 F0			 add si, ax	 ; Передвинул указатель	на нужный стиль	рамки
+     72	0145  BE 0000r			 lea si, [ramka] ; в ds:si положил адрес строки	с символами рамки
+     73	0148  03 F0			 add si, ax	 ; Передвинул указатель	на нужный стиль	рамки
+     74
+     75	014A  8A E5			 mov ah, ch ; Переместил цвет рамки из ch в ah
+     76	014C  32 ED			 xor ch, ch ; Очистил ch
      77
-     78	0154  8A E5			 mov ah, ch ; Переместил цвет рамки из ch в ah
-     79	0156  32 ED			 xor ch, ch ; Очистил ch
+     78	014E  C3			 ret
+     79	014F				 endp
      80
-     81	0158  C3			 ret
-     82	0159				 endp
-     83
-     84				     ;-----------------------------------------------------------
-     85				     ; Считывает строку	из памяти и преобразует	её в число
-     86				     ; Entry: ds:si - адрес начала строки
-     87				     ; Exit :	 bl - считанное	число
-     88				     ; Destr: si, bl, al
-     89				     ;-----------------------------------------------------------
-     90
-     91	0159			     readNumber	 proc
-     92	0159  AC			 lodsb
-     93	015A  E8 0023			 call numberConversion
-     94	015D  8A D8			 mov bl, al
+     81				     ;-----------------------------------------------------------
+     82				     ; Проверяет, является ли первый символ строки '$' и
+     83				     ; запоминает смещение до надписи
+     84				     ; Entry: ds:si - адрес начала строки
+     85				     ; Exit : bx - смещение в сегменте данных до надписи
+     86				     ; Destr: si, ax
+     87				     ;-----------------------------------------------------------
+     88
+     89	014F			     readTitle proc
+     90	014F  AC			 lodsb
+     91	0150  3C 24			 cmp al, '$'
+     92	0152  75 C8			 jne Error   ; Проверил, что первый символ является '$'
+     93
+     94	0154  8B DE			 mov bx, si  ; Сохранил	смещение в bx
      95
-     96	015F  AC			 lodsb
-     97	0160  E8 0011			 call checkForSpace
-     98	0163  72 0E			 jb EndRead
-     99
-    100	0165  E8 0018			 call numberConversion
-    101	0168  D0 E3 D0 E3 D0 E3	D0+	 shl bl, 4
-    102	      E3
-    103	0170  02 D8			 add bl, al
-    104	0172  AC			 lodsb
+     96	0156  C3			 ret
+     97	0157				 endp
+     98
+     99				     ;-----------------------------------------------------------
+    100				     ; Считывает строку	из памяти и преобразует	её в число
+    101				     ; Entry: ds:si - адрес начала строки
+    102				     ; Exit :	 bl - считанное	число
+    103				     ; Destr: si, bl, al
+    104				     ;-----------------------------------------------------------
     105
-    106	0173				 EndRead:
-    107	0173  C3			     ret
-    108	0174				 endp
-    109
-    110				     ;-----------------------------------------------------------
-    111				     ; Проверяет является ли значение al ASCII-кодом пробела
-    112				     ; Entry: al - ASCII-код символа
-    113				     ; Exit : cf - 1 если да и 0 если нет
-    114				     ; Destr:
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 3
+    106	0157			     readNumber	 proc
+    107	0157  AC			 lodsb
+    108	0158  E8 0023			 call numberConversion
+    109	015B  8A D8			 mov bl, al
+    110
+    111	015D  AC			 lodsb
+    112	015E  E8 0011			 call checkForSpace
+    113	0161  72 0E			 jb EndRead
+    114
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 3
 valent~1.asm
 
 
 
-    115				     ;-----------------------------------------------------------
-    116
-    117	0174			     checkForSpace  proc
-    118	0174  3C 20			 cmp al, ' '
-    119	0176  74 06			 je ThisIsSpace
-    120	0178  3C 0D			 cmp al, 0dh
-    121	017A  74 02			 je ThisIsSpace
-    122
-    123	017C  F8			 clc
-    124	017D  C3			 ret
-    125
-    126	017E				 ThisIsSpace:
-    127	017E  F9			     stc
-    128	017F  C3			     ret
-    129	0180				 endp
-    130
-    131				     ;-----------------------------------------------------------
-    132				     ; Преобразует ASCII-код символа из	al в число
-    133				     ; Entry: al - ASCII-код символа
-    134				     ; Exit : al - число
-    135				     ; Destr:
-    136				     ;-----------------------------------------------------------
+    115	0163  E8 0018			 call numberConversion
+    116	0166  D0 E3 D0 E3 D0 E3	D0+	 shl bl, 4
+    117	      E3
+    118	016E  02 D8			 add bl, al
+    119	0170  AC			 lodsb
+    120
+    121	0171				 EndRead:
+    122	0171  C3			     ret
+    123	0172				 endp
+    124
+    125				     ;-----------------------------------------------------------
+    126				     ; Проверяет является ли значение al ASCII-кодом пробела
+    127				     ; Entry: al - ASCII-код символа
+    128				     ; Exit : cf - 1 если да и 0 если нет
+    129				     ; Destr:
+    130				     ;-----------------------------------------------------------
+    131
+    132	0172			     checkForSpace  proc
+    133	0172  3C 20			 cmp al, ' '
+    134	0174  74 06			 je ThisIsSpace
+    135	0176  3C 0D			 cmp al, 0dh
+    136	0178  74 02			 je ThisIsSpace
     137
-    138	0180			     numberConversion  proc
-    139	0180  3C 30			 cmp al, '0'
-    140	0182  72 A7			 jb Error
-    141
-    142	0184  3C 39			 cmp al, '9'
-    143	0186  72 08			 jb DecimalNumber
-    144
-    145	0188  3C 41			 cmp al, 'A'
-    146	018A  72 9F			 jb Error
-    147
-    148	018C  3C 46			 cmp al, 'F'
-    149	018E  72 03			 jb HexadecimalNumber
-    150
-    151	0190				 DecimalNumber:
-    152	0190  2C 30			     sub al, '0'
-    153	0192  C3			     ret
-    154
-    155	0193				 HexadecimalNumber:
-    156	0193  2C 41			     sub al, 'A'
-    157	0195  04 0A			     add al, 10
-    158	0197  C3			     ret
-    159	0198				 endp
-    160
-    161				     ;-----------------------------------------------------------
-    162				     ; Выводит на экран	строку заданной	длинны,	заданного цвета
-    163				     ; с заданным смещением
-    164				     ; Entry: ds:si - адрес в памяти строки
-    165				     ;		 ah - цвет надписи
-    166				     ;		 di - смещение
-    167				     ;		 cx - длина надписи
-    168				     ; Exit : None
-    169				     ; Destr: si, di, cx
-    170				     ;-----------------------------------------------------------
-    171
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 4
+    138	017A  F8			 clc
+    139	017B  C3			 ret
+    140
+    141	017C				 ThisIsSpace:
+    142	017C  F9			     stc
+    143	017D  C3			     ret
+    144	017E				 endp
+    145
+    146				     ;-----------------------------------------------------------
+    147				     ; Преобразует ASCII-код символа из	al в число
+    148				     ; Entry: al - ASCII-код символа
+    149				     ; Exit : al - число
+    150				     ; Destr:
+    151				     ;-----------------------------------------------------------
+    152
+    153	017E			     numberConversion  proc
+    154	017E  3C 30			 cmp al, '0'
+    155	0180  72 9A			 jb Error
+    156
+    157	0182  3C 39			 cmp al, '9'
+    158	0184  72 08			 jb DecimalNumber
+    159
+    160	0186  3C 41			 cmp al, 'A'
+    161	0188  72 92			 jb Error
+    162
+    163	018A  3C 46			 cmp al, 'F'
+    164	018C  72 03			 jb HexadecimalNumber
+    165
+    166	018E				 DecimalNumber:
+    167	018E  2C 30			     sub al, '0'
+    168	0190  C3			     ret
+    169
+    170	0191				 HexadecimalNumber:
+    171	0191  2C 41			     sub al, 'A'
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 4
 valent~1.asm
 
 
 
-    172	0198			     drawTitle	 proc
-    173	0198				 WriteByCharacter:
-    174	0198  AC			     lodsb
-    175	0199  AB			     stosw
-    176	019A  E2 FC			     loop WriteByCharacter
-    177
-    178	019C  C3			 ret
-    179	019D				 endp
-    180
-    181				     ;-----------------------------------------------------------
-    182				     ; Высчитывает отступ для расположения рамки определённого
-    183				     ; размера по центру экрана	(80 * 25)
-    184				     ; Entry: cx - ширина рамки
-    185				     ;	      dx - высота рамки
-    186				     ; Exit : di - смещение
-    187				     ; Destr: ax, bl
-    188				     ;-----------------------------------------------------------
+    172	0193  04 0A			     add al, 10
+    173	0195  C3			     ret
+    174	0196				 endp
+    175
+    176				     ;-----------------------------------------------------------
+    177				     ; Определяет длину	строки,	считая '$' конечным символом
+    178				     ; и вычисляет смещение, для вывода	надписи	по центру экрана
+    179				     ; Entry: ds:si - адрес в памяти строки
+    180				     ; Exit : di - смещение
+    181				     ;	      cx - длина надписи
+    182				     ; Destr: si, bx
+    183				     ;-----------------------------------------------------------
+    184
+    185	0196			     alignTitleToCenter	 proc
+    186	0196  56			 push si
+    187	0197  33 C9			 xor cx, cx
+    188	0199  33 FF			 xor di, di  ; Очистил старые значения
     189
-    190	019D			     alignToCenter   proc
-    191	019D  33 FF			 xor di, di
-    192
-    193	019F  33 C0			 xor ax, ax
-    194	01A1  B8 0019			 mov ax, 25  ; Кладём в	ax высоту экрана в строках
-    195	01A4  2B C2			 sub ax, dx  ; Получаем	кол-во пустых строк
-    196	01A6  D1 E8			 shr ax, 1   ; Получаем	половину пустых	строк (их и пропустим)
-    197	01A8  B3 50			 mov bl, 80
-    198	01AA  F6 E3			 mul bl	     ; Умножаем	на ширину экрана
-    199	01AC  D1 E0			 shl ax, 1   ; Умножаем	ещё на два, так	как на каждый символ приходится	два байта в памяти
-    200
-    201	01AE  03 F8			 add di, ax
-    202
-    203	01B0  33 C0			 xor ax, ax
-    204	01B2  B8 0050			 mov ax, 80  ; Кладём в	ах ширину экрана
-    205	01B5  2B C1			 sub ax, cx  ; Находим кол-во пустых столбцов
-    206	01B7  D1 E8			 shr ax, 1   ; Получаем	половину пустых	столбцов
-    207	01B9  D1 E0			 shl ax, 1   ; Умножаем	ещё на два, так	как на каждый символ приходится	два байта в памяти
-    208
-    209	01BB  03 F8			 add di, ax
-    210
-    211	01BD  C3			 ret
-    212	01BE				 endp
-    213
-    214				     ;-----------------------------------------------------------
-    215				     ; Рисует рамку из заданных	символов, заданного размера и
-    216				     ; цвета с заданным	отступом.
-    217				     ; Entry: ds:si - адрес в памяти строки с рамкой
-    218				     ;		 ah - цвет рамки
-    219				     ;		 di - смещение
-    220				     ;		 cx - ширина рамки
-    221				     ;		 dx - высота рамки
-    222				     ; Exit : None
-    223				     ; Destr: al, bx, di, si, es
-    224				     ;-----------------------------------------------------------
-    225
-    226	01BE			     drawFrame	 proc
-    227	01BE  E8 001B			 call drawLine	 ; Рисую первую	линию рамки
+    190	019B				 Count:	     ; Подсчитал длину надписи
+    191	019B  AC			     lodsb
+    192	019C  3C 24			     cmp al, '$'
+    193	019E  74 03			     je	CalculatingOffset
+    194	01A0  41			     inc cx
+    195	01A1  EB F8			     jmp Count
+    196
+    197	01A3				 CalculatingOffset:
+    198	01A3  BF 0780			 mov di, 12 * 80 * 2 ; Задал смещение в	12 строк
+    199
+    200	01A6  BB 0050			 mov bx, 80
+    201	01A9  2B D9			 sub bx, cx  ; Кол-во пустых символов в	строке с надписью
+    202	01AB  D1 EB			 shr bx, 1   ; Получаем	половину пустых	символов до надписи
+    203	01AD  D1 E3			 shl bx, 1   ; Умножаем	ещё на два, так	как на каждый
+    204						     ; символ приходится два байта в памяти
+    205
+    206	01AF  03 FB			 add di, bx  ; Добавляем смещение внутри строки
+    207
+    208	01B1  5E			 pop si
+    209	01B2  C3			 ret
+    210	01B3				 endp
+    211
+    212				     ;-----------------------------------------------------------
+    213				     ; Выводит на экран	строку заданной	длинны,	заданного цвета
+    214				     ; с заданным смещением
+    215				     ; Entry: ds:si - адрес в памяти строки
+    216				     ;		 ah - цвет надписи
+    217				     ;		 di - смещение
+    218				     ;		 cx - длина надписи
+    219				     ; Exit : None
+    220				     ; Destr: si, di, cx
+    221				     ;-----------------------------------------------------------
+    222
+    223	01B3			     drawTitle	 proc
+    224	01B3				 WriteByCharacter:
+    225	01B3  AC			     lodsb
+    226	01B4  AB			     stosw
+    227	01B5  E2 FC			     loop WriteByCharacter
     228
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 5
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 5
 valent~1.asm
 
 
 
-    229	01C1				 DrawMiddle:
-    230	01C1  81 C7 00A0		     add di, 80	* 2  ; Делаю отступ
-    231	01C5  E8 0014			     call drawLine   ; Рисую линию
-    232	01C8  83 EE 03			     sub si, 3	     ; Возвращаю указатель на 4	символ рамки
-    233
-    234	01CB  4A			     dec dx
-    235	01CC  83 FA 00			     cmp dx, 0
-    236	01CF  75 F0			     jne DrawMiddle
-    237
-    238	01D1  81 C7 00A0		 add di, 80 * 2	 ; Отступаю до начала следующей	линии
-    239	01D5  83 C6 03			 add si, 3	 ; Ставлю указатель на 7 символ	рамки
-    240	01D8  E8 0001			 call drawLine	 ; Рисую последнюю линию
-    241
-    242	01DB  C3			 ret
-    243	01DC				 endp
-    244
-    245				     ;-----------------------------------------------------------
-    246				     ; Рисует строку из	символов (первый, последний и
-    247				     ; промежуточные), с заданной длинной, цветом и отступом
-    248				     ; Entry: ds:si - адрес в памяти строки с рамкой
-    249				     ;		 ah - цвет рамки
-    250				     ;		 di - смещение
-    251				     ;		 cx - ширина рамки
-    252				     ; Exit : None
-    253				     ; Destr: al, bx, si, es
-    254				     ;-----------------------------------------------------------
-    255
-    256
-    257	01DC			     drawLine	 proc
-    258	01DC  51			 push cx
-    259	01DD  57			 push di
-    260	01DE  BB B800			 mov bx, 0b800h
-    261	01E1  8E C3			 mov es, bx
-    262
-    263	01E3  AC			 lodsb	 ; Загрузил в al первый	символ рамки
-    264	01E4  AB			 stosw	 ; В видеопамять положил значение из ax
-    265
-    266	01E5  AC			 lodsb	 ; Загрузил в al второй	символ рамки
-    267	01E6  F3> AB			 rep stosw   ; В видеопамять cx	символов из ax
-    268
-    269	01E8  AC			 lodsb	 ; Загрузил в al последний символ рамки
-    270	01E9  AB			 stosw	 ; В видеопамять положил значение из ax
-    271
-    272	01EA  5F			 pop di
-    273	01EB  59			 pop cx
-    274	01EC  C3			 ret
-    275	01ED				 endp
+    229	01B7  C3			 ret
+    230	01B8				 endp
+    231
+    232				     ;-----------------------------------------------------------
+    233				     ; Высчитывает отступ для расположения рамки определённого
+    234				     ; размера по центру экрана	(80 * 25)
+    235				     ; Entry: cx - ширина рамки
+    236				     ;	      dx - высота рамки
+    237				     ; Exit : di - смещение
+    238				     ; Destr: ax, bl
+    239				     ;-----------------------------------------------------------
+    240
+    241	01B8			     alignToCenter   proc
+    242	01B8  33 FF			 xor di, di
+    243
+    244	01BA  33 C0			 xor ax, ax
+    245	01BC  B8 0019			 mov ax, 25  ; Кладём в	ax высоту экрана в строках
+    246	01BF  2B C2			 sub ax, dx  ; Получаем	кол-во пустых строк
+    247	01C1  D1 E8			 shr ax, 1   ; Получаем	половину пустых	строк (их и пропустим)
+    248	01C3  B3 50			 mov bl, 80
+    249	01C5  F6 E3			 mul bl	     ; Умножаем	на ширину экрана
+    250	01C7  D1 E0			 shl ax, 1   ; Умножаем	ещё на два, так	как на каждый символ приходится	два байта в памяти
+    251
+    252	01C9  03 F8			 add di, ax
+    253
+    254	01CB  33 C0			 xor ax, ax
+    255	01CD  B8 0050			 mov ax, 80  ; Кладём в	ах ширину экрана
+    256	01D0  2B C1			 sub ax, cx  ; Находим кол-во пустых столбцов
+    257	01D2  D1 E8			 shr ax, 1   ; Получаем	половину пустых	столбцов
+    258	01D4  D1 E0			 shl ax, 1   ; Умножаем	ещё на два, так	как на каждый символ приходится	два байта в памяти
+    259
+    260	01D6  03 F8			 add di, ax
+    261
+    262	01D8  C3			 ret
+    263	01D9				 endp
+    264
+    265				     ;-----------------------------------------------------------
+    266				     ; Рисует рамку из заданных	символов, заданного размера и
+    267				     ; цвета с заданным	отступом.
+    268				     ; Entry: ds:si - адрес в памяти строки с рамкой
+    269				     ;		 ah - цвет рамки
+    270				     ;		 di - смещение
+    271				     ;		 cx - ширина рамки
+    272				     ;		 dx - высота рамки
+    273				     ; Exit : None
+    274				     ; Destr: al, bx, di, si, es
+    275				     ;-----------------------------------------------------------
     276
-    277				     end Start
-Turbo Assembler	 Version 4.1	    02/24/25 14:20:59	    Page 6
+    277	01D9			     drawFrame	 proc
+    278	01D9  83 E9 02			 sub cx, 2	 ; Вычисляю внутреннюю часть ширины рамки
+    279	01DC  83 EA 02			 sub dx, 2	 ; Вычисляю внутреннюю часть высоты рамки
+    280
+    281	01DF  E8 001B			 call drawLine	 ; Рисую первую	линию рамки
+    282
+    283	01E2				 DrawMiddle:
+    284	01E2  81 C7 00A0		     add di, 80	* 2  ; Делаю отступ
+    285	01E6  E8 0014			     call drawLine   ; Рисую линию
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 6
+valent~1.asm
+
+
+
+    286	01E9  83 EE 03			     sub si, 3	     ; Возвращаю указатель на 4	символ рамки
+    287
+    288	01EC  4A			     dec dx
+    289	01ED  83 FA 00			     cmp dx, 0
+    290	01F0  75 F0			     jne DrawMiddle
+    291
+    292	01F2  81 C7 00A0		 add di, 80 * 2	 ; Отступаю до начала следующей	линии
+    293	01F6  83 C6 03			 add si, 3	 ; Ставлю указатель на 7 символ	рамки
+    294	01F9  E8 0001			 call drawLine	 ; Рисую последнюю линию
+    295
+    296	01FC  C3			 ret
+    297	01FD				 endp
+    298
+    299				     ;-----------------------------------------------------------
+    300				     ; Рисует строку из	символов (первый, последний и
+    301				     ; промежуточные), с заданной длинной, цветом и отступом
+    302				     ; Entry: ds:si - адрес в памяти строки с рамкой
+    303				     ;		 ah - цвет рамки
+    304				     ;		 di - смещение
+    305				     ;		 cx - ширина внутренней	части рамки
+    306				     ; Exit : None
+    307				     ; Destr: al, bx, si, es
+    308				     ;-----------------------------------------------------------
+    309
+    310
+    311	01FD			     drawLine	 proc
+    312	01FD  51			 push cx
+    313	01FE  57			 push di
+    314	01FF  BB B800			 mov bx, 0b800h
+    315	0202  8E C3			 mov es, bx
+    316
+    317	0204  AC			 lodsb	 ; Загрузил в al первый	символ рамки
+    318	0205  AB			 stosw	 ; В видеопамять положил значение из ax
+    319
+    320	0206  AC			 lodsb	 ; Загрузил в al второй	символ рамки
+    321	0207  F3> AB			 rep stosw   ; В видеопамять cx	символов из ax
+    322
+    323	0209  AC			 lodsb	 ; Загрузил в al последний символ рамки
+    324	020A  AB			 stosw	 ; В видеопамять положил значение из ax
+    325
+    326	020B  5F			 pop di
+    327	020C  59			 pop cx
+    328	020D  C3			 ret
+    329	020E				 endp
+    330
+    331				     end Start
+Turbo Assembler	 Version 4.1	    02/27/25 01:39:31	    Page 7
 Symbol Table
 
 
@@ -308,9 +367,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "02/24/25"
+??DATE				  Text	 "02/27/25"
 ??FILENAME			  Text	 "valent~1"
-??TIME				  Text	 "14:20:59"
+??TIME				  Text	 "01:39:31"
 ??VERSION			  Number 040A
 @32BIT				  Text	 0
 @CODE				  Text	 DGROUP
@@ -324,28 +383,31 @@ Symbol Name			  Type	 Value
 @MODEL				  Text	 1
 @STACK				  Text	 DGROUP
 @WORDSIZE			  Text	 2
-ALIGNTOCENTER			  Near	 DGROUP:019D
-CHECKFORSPACE			  Near	 DGROUP:0174
-DECIMALNUMBER			  Near	 DGROUP:0190
-DRAWFRAME			  Near	 DGROUP:01BE
-DRAWLINE			  Near	 DGROUP:01DC
-DRAWMIDDLE			  Near	 DGROUP:01C1
-DRAWTITLE			  Near	 DGROUP:0198
-ENDREAD				  Near	 DGROUP:0173
-ERROR				  Near	 DGROUP:012B
-HEXADECIMALNUMBER		  Near	 DGROUP:0193
-NUMBERCONVERSION		  Near	 DGROUP:0180
+ALIGNTITLETOCENTER		  Near	 DGROUP:0196
+ALIGNTOCENTER			  Near	 DGROUP:01B8
+CALCULATINGOFFSET		  Near	 DGROUP:01A3
+CHECKFORSPACE			  Near	 DGROUP:0172
+COUNT				  Near	 DGROUP:019B
+DECIMALNUMBER			  Near	 DGROUP:018E
+DRAWFRAME			  Near	 DGROUP:01D9
+DRAWLINE			  Near	 DGROUP:01FD
+DRAWMIDDLE			  Near	 DGROUP:01E2
+DRAWTITLE			  Near	 DGROUP:01B3
+ENDREAD				  Near	 DGROUP:0171
+ERROR				  Near	 DGROUP:011C
+HEXADECIMALNUMBER		  Near	 DGROUP:0191
+NUMBERCONVERSION		  Near	 DGROUP:017E
 RAMKA				  Byte	 DGROUP:0000
-READARGUMENTS			  Near	 DGROUP:0131
-READNUMBER			  Near	 DGROUP:0159
+READARGUMENTS			  Near	 DGROUP:0122
+READNUMBER			  Near	 DGROUP:0157
+READTITLE			  Near	 DGROUP:014F
 START				  Near	 DGROUP:0100
-STRING				  Byte	 DGROUP:0012
-THISISSPACE			  Near	 DGROUP:017E
-WRITEBYCHARACTER		  Near	 DGROUP:0198
+THISISSPACE			  Near	 DGROUP:017C
+WRITEBYCHARACTER		  Near	 DGROUP:01B3
 
 Groups & Segments		  Bit Size Align  Combine Class
 
 DGROUP				  Group
-  _DATA				  16  001C Word	  Public  DATA
-  _TEXT				  16  01ED Word	  Public  CODE
+  _DATA				  16  0012 Word	  Public  DATA
+  _TEXT				  16  020E Word	  Public  CODE
 
